@@ -1,4 +1,4 @@
-# Teaching Vehicles Like We Do Using Deep Learning
+# Teaching Vehicles To Drive Like We Do Using Deep Learning
 
 
 ![Knight Rider Car KIT](media/knight_rider_poster.jpg)
