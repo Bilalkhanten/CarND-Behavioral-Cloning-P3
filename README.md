@@ -261,14 +261,37 @@ We initially tried a variant of the VGG architecture, with less layers and no tr
 
 ![NVIDIA Neural Net Architecture](media/nvidia_cnn_architecture.png)
 
+## Model Tweaks
+
 However, we added some slight tweaks to the model:
 * We crop the top of the images so as to exclude the horizon (it not not play a role in *immediately* determining the steering angle)
 * We resize the images to 66x200 as one the early layers to take advantage of the GPU
-* We apply [BatchNormalization](https://www.quora.com/Why-does-batch-normalization-help) after each activation function for faster convergence
+* We apply [BatchNormalization](https://www.quora.com/Why-does-batch-normalization-help) after each activation function for faster convergence.
 
-The activation function used across all layers, bar the last one, is [ReLU](https://stats.stackexchange.com/questions/226923/why-do-we-use-relu-in-neural-networks-and-how-do-we-use-it). We tried [ELU](https://www.quora.com/How-does-ELU-activation-function-help-convergence-and-whats-its-advantages-over-ReLU-or-sigmoid-or-tanh-function) as well but got better results with ReLU + BatchNormalization.
+## Model Architecture
 
-We trained the model using Adam as the optimizer and a learning rate of 0.001. After much, tweaking of parameters, and experimentation of multiple models, we ended up with one that is able power our virtual car to drive autonomously on both tracks. 
+The full architecture of the model is as follows:
+
+* Input image is 160x320 (height x width format)
+* Image is **vertically cropped** at the top, by removing half of the height (80 pixels), resulting in an image of 80x320
+* Cropped image is normalized, to make sure the mean of our pixel distribution is 0
+* Cropped image is *resized* to 66x200, using Tensorflow's [*tf.image.resize_images*](https://www.tensorflow.org/api_docs/python/tf/image/resize_images)
+* We apply a series of 3 of 5x5 convolutional layers, using a stride of 2x2. Each convolutional layer is followed by a BatchNormalization operation to improve convergence. The respective depth of each layer is 24, 36 and 48 as we go deeper into the network
+* We apply a 2 consecutive 3x3 convolutional layers, with a depth of 64. Each convolutional layer is immediately followed by a BatchNormalization layer
+* We flatten the input at this stage and enter the fully connected phase
+* We  apply a series of fully connected layers, of gradually decreasing sizes: 1164, 200, 50 and 10
+* The output layer is obviously of size 1, since we predict only one variable, the steering wheel angle.
+
+## Activations And Regularization
+
+The activation function used across all layers, bar the last one, is [ReLU](https://stats.stackexchange.com/questions/226923/why-do-we-use-relu-in-neural-networks-and-how-do-we-use-it). We tried [ELU](https://www.quora.com/How-does-ELU-activation-function-help-convergence-and-whats-its-advantages-over-ReLU-or-sigmoid-or-tanh-function) as well but got better results with ReLU + BatchNormalization. We use the [Mean Squared Error](https://en.wikipedia.org/wiki/Mean_squared_error) activation for the output layer since this is a regression problem, not a classification one.
+
+As stated in the previous section, we employed BatchNormalization to hasten convergence. We did try some degree of [Dropout](https://www.quora.com/What-does-a-dropout-in-neural-networks-mean) but did not find any noticeable difference. We believe the fact that we are generating new images at every batch and discarding some of the neutral angle images help in reducing overfitting. Moreover, we did not apply any [MaxPool](http://cs231n.github.io/convolutional-networks/#pool) operation to our NVIDIA network (although we tried on the VGG inspired one) as it would have required significant changes in the architecture since we would have reduced dimensionality much earlier. Moreover, we did have the time to experiment with L2 regularisation, but plan to try it in the future. 
+
+## Training And Results
+
+We trained the model using [Adam](https://www.quora.com/Can-you-explain-basic-intuition-behind-ADAM-a-method-for-stochastic-optimization) as the optimizer and a learning rate of 0.001. After much, tweaking of parameters, and experimentation of multiple models, we ended up with one that is able power our virtual car to drive autonomously on both tracks. 
+
 
 ![Car Drives Autonomously On Track 1](media/nvidia_model_track1_drives_well.gif)
 
